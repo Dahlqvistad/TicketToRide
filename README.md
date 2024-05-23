@@ -1,7 +1,5 @@
+Terminal
 
-`
-pip install -r requirements.txt
-`
-
-Run `main.py`
+`pip install -r requirements.txt`
+`python main.py`
 
