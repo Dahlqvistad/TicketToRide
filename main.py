@@ -6,10 +6,10 @@ from typing import List, Tuple
 
 import pygame
 
-from CoordinatesClass import Button
+from Button import Button
 
 # =================
-# Pygame window config
+# Pygame fönsterkonfiguration
 
 WIDTH = 1439
 HEIGHT = 849
@@ -18,24 +18,23 @@ FPS = 30
 I_WIDTH = 1200
 I_HEIGHT = 760
 
-# TRAIN_MARKER_SIZE = 50
-
-
+# Bakgrunds- och kortbilder
 BACKGROUND_IMAGE = pygame.image.load('ttr_map_europe.JPG')
 CARD = pygame.image.load('ttr_card_short.jpeg')
 CARD_BLUE = pygame.image.load('ttr_card_long.jpeg')
 
-
+# Skärminställningar
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
 pygame.init()
 running = True
 
+# Teckensnitt
 font = pygame.font.Font(pygame.font.get_default_font(), 12)
 myfont = pygame.font.SysFont("Times New Roman", 20)
 
 # =================
-# Colors
+# Färger
 
 LIME = (0, 255, 0)
 GRAY = "#Bec1c3"
@@ -47,20 +46,35 @@ DARKGRAY = "#202123"
 
 
 # =================
-# Classes
-
+# Klasser
 
 class Graph:
     def __init__(self):
-        self.connections = defaultdict(list)
-        self.cities = {}
+        """Initialiserar en graf med städer och deras förbindelser."""
+        self.connections = defaultdict(list)  # Förbindelser mellan städer
+        self.cities = {}  # Städer och deras koordinater
 
     def add_city(self, name: str, coords: Tuple[int, int], links: List[Tuple[str, int, int]]):
+        """Lägger till en stad i grafen med dess namn, koordinater och länkar till andra städer.
+        
+        Args:
+            name (str): Stadens namn.
+            coords (Tuple[int, int]): Stadens koordinater.
+            links (List[Tuple[str, int, int]]): Lista över länkar till andra städer (stad, avstånd, vikt).
+        """
         self.cities[name] = {"coords": coords, "branches": len(links)}
         for city, distance, weight in links:
             self.connections[name].append({"city": city, "distance": distance, "weight": weight})
 
     def neighbors(self, city_name):
+        """Hämtar alla grannstäder till en given stad.
+        
+        Args:
+            city_name (str): Namnet på staden.
+
+        Returns:
+            List[str]: Lista över grannstäder.
+        """
         list_connections = []
         connections = self.connections[city_name]
         for cities in connections:
@@ -68,35 +82,43 @@ class Graph:
         return list_connections
 
     def cost(self, pointA, pointB):
+        """Hämtar kostnaden mellan två städer.
+        
+        Args:
+            pointA (str): Namnet på startstaden.
+            pointB (str): Namnet på slutstaden.
+
+        Returns:
+            Tuple[int, str]: Avståndet och namnet på slutstaden.
+        """
         connections = self.connections[pointA]
         for cities in connections:
             if cities['city'] == pointB:
                 return cities['distance'], cities['city']
 
-# graph.cities['edinburgh']['coords']
-# graph.connections['edinburgh']
 
 # =================
-# Functions
+# Funktioner
 
-
-# noinspection PyGlobalUndefined
 def route_creater(num_trains):
+    """Skapar en rutt och beräknar dess information inklusive kortaste vägen och poäng.
+    
+    Args:
+        num_trains (int): Antal tåg att använda i rutten.
+
+    Returns:
+        dict: Information om rutten inklusive koordinater och poäng.
+    """
     info_route = {}
-    # global route, route_coords, shortest_route_coords
     route = route_planner(num_trains)
     info_route["route"] = route
-    # print(route_local)
 
     route_coords = travel_coords(route)
     info_route["route_coords"] = route_coords
 
-    # print(route)
-
     shortest_cost, shortest_path = a_star(route[0], route[-1], graph)
     info_route["shortest_cost"] = shortest_cost
     info_route["shortest_path"] = shortest_path
-    # print(shortest_path)
 
     shortest_route_coords = travel_coords(shortest_path)
     info_route["shortest_route_coords"] = shortest_route_coords
@@ -106,28 +128,35 @@ def route_creater(num_trains):
     info_route["points"] = points
     info_route["pointsText"] = pointsText
 
-    # print(info_route)
-
     return info_route
 
 
 def route_planner(num_trains):
+    """Planerar en rutt slumpmässigt baserat på antal tåg.
+    
+    Args:
+        num_trains (int): Antal tåg att använda i rutten.
+
+    Returns:
+        List[str]: Lista över städer i rutten.
+    """
     route_local = []
     counter = 0
 
+    # Väljer en slumpmässig stad som startpunkt
     list_city = list(graph.cities.keys())
     random_city = random.choice(list_city)
     route_local.append(random_city)
 
     n = 0
-    rand_length_route = num_trains + random.randrange(0, 4)
+    rand_length_route = num_trains + random.randrange(0, 4)  # Slumpmässig längd på rutten
     while counter <= rand_length_route:
         prev_stop = route_local[n]
         prev_stop_connections = graph.connections[prev_stop]
 
         next_stop = None
         iterations = 0
-        # print(route_local)
+        # Väljer nästa stad slumpmässigt
         while next_stop is None or next_stop in route_local:
             prev_stop_index = random.randrange(0, len(prev_stop_connections))
             next_stop = prev_stop_connections[prev_stop_index]['city']
@@ -145,20 +174,43 @@ def route_planner(num_trains):
 
 
 def travel_coords(travel_route):
+    """Hämtar koordinaterna för en given resrutt.
+    
+    Args:
+        travel_route (List[str]): Lista över städer i rutten.
+
+    Returns:
+        List[Tuple[int, int]]: Lista över koordinater för rutten.
+    """
     route_coords_local = []
 
     for i in range(len(travel_route)):
         route_coords_local.append(graph.cities[travel_route[i]]['coords'])
-    # print(travel_route)
-    # print(route_coords_local)
     return route_coords_local
 
 
 def draw_to_screen(route_coordinates, color, size):
+    """Ritar en linje på skärmen som representerar en rutt.
+    
+    Args:
+        route_coordinates (List[Tuple[int, int]]): Lista över koordinater för rutten.
+        color (Tuple[int, int, int]): Färgen på linjen.
+        size (int): Tjockleken på linjen.
+    """
     pygame.draw.lines(screen, color, False, route_coordinates, size)
 
 
 def a_star(start, end, graph_local):
+    """A* algoritm för att hitta den kortaste vägen mellan två städer.
+    
+    Args:
+        start (str): Startstadens namn.
+        end (str): Slutstadens namn.
+        graph_local (Graph): Grafen som representerar städer och deras förbindelser.
+
+    Returns:
+        Tuple[int, List[str]]: Kostnaden och vägen mellan start och slut.
+    """
     heap = [(0, start, [start])]
     visited = set()
     while heap:
@@ -177,8 +229,16 @@ def a_star(start, end, graph_local):
     return None
 
 
-# noinspection PyGlobalUndefined
 def start_game(num_trains, num_routes):
+    """Startar spelet och genererar rutter.
+    
+    Args:
+        num_trains (int): Antal tåg att använda i varje rutt.
+        num_routes (int): Antal rutter att generera.
+
+    Returns:
+        List[dict]: Lista över information om varje rutt.
+    """
     global list_routes
     list_routes = []
 
@@ -189,6 +249,16 @@ def start_game(num_trains, num_routes):
 
 
 def calculate_points(pointA, pointB, trains_used):
+    """Beräknar poängen för en rutt baserat på avstånd och antal använda tåg.
+    
+    Args:
+        pointA (Tuple[int, int]): Startpunktens koordinater.
+        pointB (Tuple[int, int]): Slutpunktens koordinater.
+        trains_used (int): Antal använda tåg.
+
+    Returns:
+        Tuple[int, pygame.Surface]: Poängen och textytan för poängen.
+    """
     points = 0
     euclidean_dist = math.dist(pointA, pointB)
     points += math.sqrt(euclidean_dist) / 7
@@ -199,16 +269,30 @@ def calculate_points(pointA, pointB, trains_used):
 
     pointText = pygame_text(points)
 
-    # print(points)
     return points, pointText
 
 
 def pygame_text(text):
+    """Renderar text för att visas i Pygame.
+    
+    Args:
+        text (int): Texten som ska renderas.
+
+    Returns:
+        pygame.Surface: Ytan med renderad text.
+    """
     text = myfont.render(str(text).upper(), False, (0, 0, 0))
     return text
 
 
 def lsh():
+    """LSH-algoritm för att kategorisera st
+
+äder och välja start- och slutstad för en lång rutt.
+    
+    Returns:
+        Tuple[str, str]: Start- och slutstadens namn.
+    """
     list_cities = list(graph.cities.keys())
 
     categorized_cities = {}
@@ -231,20 +315,25 @@ def lsh():
             categorized_cities[str_city] = [city]
 
     ALL_COMBINATIONS = list(categorized_cities.keys())
-    # print(ALL_COMBINATIONS)
-    # print(categorized_cities)
+
     selected_combination = random.choice(ALL_COMBINATIONS)
     opposite_combination = generate_opposite_combination(selected_combination)
-    # print(selected_combination)
-    # print(opposite_combination)
+
     start_city = random.choice(categorized_cities[selected_combination])
     end_city = random.choice(categorized_cities[opposite_combination])
     return start_city, end_city
 
 
-
 def point_side_of_line(x1, y1, x2, y2, a, b):
-    # Compute the cross product
+    """Avgör vilken sida av en linje en punkt ligger på.
+    
+    Args:
+        x1, y1, x2, y2 (int): Koordinater för linjens ändpunkter.
+        a, b (int): Koordinater för punkten.
+
+    Returns:
+        str: "L" om punkten ligger till vänster, annars "R".
+    """
     cross_product = (x2 - x1) * (b - y1) - (y2 - y1) * (a - x1)
     if cross_product < 0:
         return "L"
@@ -253,32 +342,30 @@ def point_side_of_line(x1, y1, x2, y2, a, b):
 
 
 def generate_opposite_combination(combinations):
-    # Select a random combination from the list
-    # print(f"Selected combination: {selected_combination}")
+    """Genererar den motsatta kombinationen av en given kombination av "L" och "R".
+    
+    Args:
+        combinations (str): Den ursprungliga kombinationen.
 
-    # Create the opposite combination by switching all the Ls with Rs and vice versa
+    Returns:
+        str: Den motsatta kombinationen.
+    """
     opposite_combination = ""
-    randnum = random.randrange(0, 11)
-    counter = 0
     for char in combinations:
         if char == "L":
             opposite_combination += "R"
         else:
             opposite_combination += "L"
-    # print(f"Opposite combination: {opposite_combination}")
-
     return opposite_combination
 
 
 def long_route():
+    """Skapar en lång rutt mellan två städer som valts med LSH-algoritmen."""
     global list_routes
     list_routes = []
     list_routes_dict = {}
 
-
     start_city, end_city = lsh()
-    # print(start_city, end_city)
-
     shortest_cost, shortest_path = a_star(start_city, end_city, graph)
 
     list_routes_dict['route'] = shortest_path
@@ -287,21 +374,16 @@ def long_route():
 
     list_routes.append(list_routes_dict)
 
-    # print(shortest_path)
-
-
-
     return
 
 
-
 # =================
-# Defining all cities
-#       graph.add_city("edinburgh", (173, 34), [("london", 4, 0),("paris", 2, 0)])
-
+# Definiera alla städer
+# Lägg till alla noder (städer) samt kanter (räls) mellan dem tillsammans med koordinaterna för städerna på bilden
 
 graph = Graph()
 
+# Exempel på att lägga till städer och deras förbindelser
 graph.add_city("edinburgh", (173, 34), [("london", 4, 0)])
 graph.add_city("london", (254, 213), [("amsterdam", 2, 0), ("dieppe", 2, 0), ("edinburgh", 4, 0)])
 graph.add_city("amsterdam", (371, 224), [("london", 2, 0), ("essen", 3, 0), ("bruxelles", 1, 0), ("frankfurt", 2, 0)])
@@ -352,9 +434,9 @@ graph.add_city("palermo", (593, 750), [("roma", 4, 0), ("brindisi", 3, 0), ("smy
 
 
 # =================
-# Locality sensitive hashing
+
 # (x1, x2), (y1, y2)
-# k, m
+# LSH-koordinater för att kategorisera städer
 LSH_BLUE_COORDS = ((0, 0), (I_WIDTH, I_HEIGHT))
 LSH_GREEN_COORDS = ((0, I_HEIGHT/2), (I_WIDTH, I_HEIGHT/2))
 LSH_YELLOW_COORDS = ((0, I_HEIGHT), (I_WIDTH, 0))
@@ -363,71 +445,81 @@ LSH_RED_COORDS = ((I_WIDTH/2, 0), (I_WIDTH/2, 760))
 
 # =================
 
-start_game(9, 3)
+start_game(9, 3) # Startar spelet och genererar rutter med 9 tåg och 3 rutter
+# Skapar två knappar som kommer att användas för att starta nya rutter, blir placerade bakom bilderna
 rectangle = Button(BLUE, 260, 710, 250, 142)
 rectangle_blue = Button(BLUE, 1200, 710, 250, 142)
 
 lsh()
 
 # =================
-# Pygame game loop
+# Pygame spel-loop
+
+# Initierar klockan för att kontrollera spelets FPS
 clock = pygame.time.Clock()
 while running:
+    # Sätter spelets FPS
     clock.tick(FPS)
+    
+    # Hanterar händelser (events) som användarinteraktioner
     for event in pygame.event.get():
+        # Om användaren klickar på stängningsknappen
         if event.type == pygame.QUIT:
             running = False
-
+        
+        # Om användaren klickar med musen
         if event.type == pygame.MOUSEBUTTONDOWN:
-            # print(pos)
+            # Om användaren klickar på rektangeln (startar nya rutter)
             if rectangle.isOver(pos):
                 start_game(9, 3)
+            # Om användaren klickar på blåa rektangeln (genererar en lång rutt)
             if rectangle_blue.isOver(pos):
                 long_route()
-
-    # number_of_routes = len(list_routes)
-
-
-    # route_creater()
-
+    
+    # Hämtar musens position
     pos = pygame.mouse.get_pos()
-    # print(pos)
 
+    # Fyller skärmen med grå bakgrundsfärg
     screen.fill(GRAY)
+    # Visar bakgrundsbilden på skärmen
     screen.blit(BACKGROUND_IMAGE, (0, 0))
+    # Visar kortbilden på skärmen
     screen.blit(CARD, (260, 710))
+    # Visar blå kortbilden på skärmen
     screen.blit(CARD_BLUE, (1200, 710))
 
+    # Lista över färger för rutterna
     colors = [BLUE, GREEN, YELLOW, RED, DARKGRAY]
     counter_loop = 0
 
+    # Loopar genom varje rutt i list_routes
     for j in list_routes:
         try:
+            # Sätter färgen för den nuvarande rutten
             COLOR = colors[counter_loop]
+            # Ritar den kortaste rutten på skärmen
             draw_to_screen(j['shortest_route_coords'], COLOR, 8)
+            # Ritar cirklar vid start- och slutpunkten för rutten
             pygame.draw.circle(screen, COLOR, j['route_coords'][0], 10)
             pygame.draw.circle(screen, COLOR, j['route_coords'][-1], 10)
-
+            
+            # Visar start- och slutstaden för rutten på skärmen
             screen.blit(pygame_text(j['route'][0]), (1270, 155*counter_loop+75))
             screen.blit(pygame_text(j['route'][-1]), (1270, 155 * counter_loop + 130))
-
-
+            
+            # Ritar hela rutten på skärmen
             draw_to_screen(j['route_coords'], COLOR, 2)
-
-
+            
+            # Ritar en cirkel vid ruttnumrets position
             pygame.draw.circle(screen, COLOR, (1220, 150*counter_loop+100), 10)
-
+            
+            # Visar poängen för rutten på skärmen
             screen.blit(j['pointsText'], (1237, (150*counter_loop + 80)))
-
-
+            
+            # Ökar räknaren för att byta färg för nästa rutt
             counter_loop += 1
         except:
             continue
 
-
-    # draw_to_screen(LSH_BLUE_COORDS, BLUE, 10)
-    # draw_to_screen(LSH_GREEN_COORDS, GREEN, 10)
-    # draw_to_screen(LSH_YELLOW_COORDS, YELLOW, 10)
-    # draw_to_screen(LSH_RED_COORDS, RED, 10)
-
+    # Uppdaterar displayen för att visa alla ändringar
     pygame.display.update()
