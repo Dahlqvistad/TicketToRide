@@ -1,0 +1,8 @@
+.idea
+venv
+*.py
+*.csv
+!outdated.py
+*.ipynb
+ttr_map_europe_2.jpg
+__pycache__
